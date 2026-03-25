@@ -1,9 +1,10 @@
 # PCA-EXP-4-MATRIX-ADDITION-WITH-UNIFIED-MEMORY AY 23-24
 <h3>AIM:</h3>
-<h3>ENTER YOUR NAME</h3>
-<h3>ENTER YOUR REGISTER NO</h3>
-<h3>EX. NO</h3>
-<h3>DATE</h3>
+<h3>ENTER YOUR NAME :k hemanth yadav</h3>
+<h3>ENTER YOUR REGISTER NO :212224100033 </h3> 
+<h3>EX. NO :ex:-4 </h3>
+<h3>DATE 25-03-2026 </h3>  
+
 <h1> <align=center> MATRIX ADDITION WITH UNIFIED MEMORY </h3>
   Refer to the program sumMatrixGPUManaged.cu. Would removing the memsets below affect performance? If you can, check performance with nvprof or nvvp.</h3>
 
@@ -39,10 +40,79 @@ Allocate Host Memory
 22.	Reset the device using cudaDeviceReset and return from the main function.
 
 ## PROGRAM:
-TYPE YOUR CODE HERE
+```
+%%cuda
+#include <stdio.h>
+#include <cuda_runtime.h>
+#include <sys/time.h>
+
+inline double seconds()
+{
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    return (double)tp.tv_sec + (double)tp.tv_usec * 1e-6;
+}
+
+__global__ void sumMatrixGPU(float *A, float *B, float *C, int nx, int ny)
+{
+    int ix = threadIdx.x + blockIdx.x * blockDim.x;
+    int iy = threadIdx.y + blockIdx.y * blockDim.y;
+
+    if (ix < nx && iy < ny)
+    {
+        int idx = iy * nx + ix;
+        C[idx] = A[idx] + B[idx];
+    }
+}
+
+int main()
+{
+    printf("Unified Memory Matrix Addition with Warm-up\n");
+
+    int nx = 1 << 12;
+    int ny = 1 << 12;
+    int n = nx * ny;
+    size_t size = n * sizeof(float);
+
+    float *A, *B, *C;
+
+    cudaMallocManaged(&A, size);
+    cudaMallocManaged(&B, size);
+    cudaMallocManaged(&C, size);
+
+    // Initialize data
+    for (int i = 0; i < n; i++)
+    {
+        A[i] = rand() % 100;
+        B[i] = rand() % 100;
+    }
+
+    dim3 block(32, 32);
+    dim3 grid((nx + 31) / 32, (ny + 31) / 32);
+
+    sumMatrixGPU<<<grid, block>>>(A, B, C, nx, ny);
+    cudaDeviceSynchronize();
+
+    double start = seconds();
+
+    sumMatrixGPU<<<grid, block>>>(A, B, C, nx, ny);
+    cudaDeviceSynchronize();
+
+    double time = seconds() - start;
+
+    printf("Optimized Execution Time: %f sec\n", time);
+
+    cudaFree(A);
+    cudaFree(B);
+    cudaFree(C);
+
+    return 0;
+}
+```
 
 ## OUTPUT:
-SHOW YOUR OUTPUT HERE
+<img width="617" height="84" alt="image" src="https://github.com/user-attachments/assets/2acd4cc1-6022-407c-8610-fec280e3af2a" />
+
 
 ## RESULT:
-Thus the program has been executed by using unified memory. It is observed that removing memset function has given less/more_______________time.
+Thus the program has been successfully executed using unified memory for matrix addition. It is observed that removing the memset() function gives less elapsed time (0.000837 sec)
